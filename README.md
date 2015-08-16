@@ -1,7 +1,9 @@
 # Limo: generalized linear models
+*Note: This package is just getting started. Check back later for more info.*
 
 ## About
-This package is just getting started. Check back later for more info
+The limo package is a set of tools for creating and fitting generalized linear
+models (GLMs), specifically tuned for sensory neuroscience data and applications.
 
 ## Experiment
 The `Experiment` object is useful as a container for holding sensory experiment
