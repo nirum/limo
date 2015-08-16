@@ -1,8 +1,8 @@
 """
+Limo
+=e==
 
-=======
-
-A Python package for fitting generalized linear models
+A Python package for fitting generalized LInear MOdels
 
 Modules
 -------
