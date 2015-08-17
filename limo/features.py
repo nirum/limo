@@ -60,7 +60,7 @@ class Feature(ComparableMixin):
 
 
 class Stimulus(Feature):
-    def __init__(self, name, stim):
+    def __init__(self, name, stim, dtype=float):
         """
         Parameters
         ----------
@@ -72,6 +72,7 @@ class Stimulus(Feature):
         super().__init__(name)
         self.feature = stim
         self.ndim = stim.ndim
+        self.dtype = dtype
 
         letters = 'ijklmn'
         self.einsum_proj = letters[:self.ndim] + ',' + \
@@ -82,17 +83,17 @@ class Stimulus(Feature):
 
     def __call__(self, theta, inds=None):
         if inds is None:
-            return np.einsum(self.einsum_proj, self.feature, theta)
+            return np.einsum(self.einsum_proj, self.feature.astype(self.dtype), theta)
         else:
-            return np.einsum(self.einsum_proj, self.feature[..., inds], theta)
+            return np.einsum(self.einsum_proj, self.feature[..., inds].astype(self.dtype), theta)
 
     def weighted_average(self, weights, inds=None):
         if inds is None:
-            return np.einsum(self.einsum_avg, self.feature, weights) \
+            return np.einsum(self.einsum_avg, self.feature.astype(self.dtype), weights) \
                 / float(weights.size)
         else:
-            return np.einsum(self.einsum_avg, self.feature[..., inds], weights) \
-                / float(weights.size)
+            return np.einsum(self.einsum_avg, self.feature[..., inds].astype(self.dtype), weights[inds]) \
+                / float(inds.size)
 
     @property
     def shape(self):
