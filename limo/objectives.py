@@ -44,7 +44,7 @@ class Objective(object):
         obj = self.dt * np.mean(rhat) - reduce(np.add, avg_innerprod)
 
         # gradient
-        grad = {f: self.dt * f.weighted_average(rhat) - self.averages[f.name] \
+        grad = {f.name: self.dt * f.weighted_average(rhat) - self.averages[f.name] \
                 for f in self.features}
 
         return obj, grad
