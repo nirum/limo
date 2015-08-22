@@ -5,14 +5,7 @@
 The limo package is a set of tools for creating and fitting generalized linear
 models (GLMs), specifically tuned for sensory neuroscience data and applications.
 
-## Experiment
-The `Experiment` object is useful as a container for holding sensory experiment
-data. It exposes a number of helper utility functions.
-```python
->>> ex = Experiment(stimulus, time, spikes, dt)
->>> ex.ste(nhist, cellidx) # generator for the spike triggered ensemble
->>> ex.stim_sliced(history) # sliced stimulus
-```
+Limo works best when used with the [pyret](https://github.com/baccuslab/pyret) and [descent](https://github.com/nirum/descent) packages.
 
 ## Feature
 A `Feature` object exposes a couple of important methods, a `__call__` function
