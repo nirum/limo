@@ -60,11 +60,11 @@ class Feature(ComparableMixin):
 
 
 class Stimulus(Feature):
-    def __init__(self, name, stim, dtype=float):
+    def __init__(self, name, stim, dtype='float'):
         """
         Parameters
         ----------
-        feature: array_like
+        feature: array_like (space, space, time)
         einsum: string
         """
         assert stim.ndim <= 6, "Too many dimensions!"
@@ -74,34 +74,34 @@ class Stimulus(Feature):
         self.ndim = stim.ndim
         self.dtype = dtype
 
-        letters = 'ijklmn'
+        letters = 'tijklmn'
         self.einsum_proj = letters[:self.ndim] + ',' + \
-            letters[:(self.ndim-1)] + '->' + letters[self.ndim-1]
+            letters[1:self.ndim] + '->' + letters[0]
 
         self.einsum_avg = letters[:self.ndim] + ',' + \
-            letters[self.ndim-1] + '->' + letters[:(self.ndim-1)]
+            letters[0] + '->' + letters[1:self.ndim]
 
     def __call__(self, theta, inds=None):
         if inds is None:
             return np.einsum(self.einsum_proj, self.feature.astype(self.dtype), theta)
         else:
-            return np.einsum(self.einsum_proj, self.feature[..., inds].astype(self.dtype), theta)
+            return np.einsum(self.einsum_proj, self.feature[inds, ...].astype(self.dtype), theta)
 
     def weighted_average(self, weights, inds=None):
         if inds is None:
             return np.einsum(self.einsum_avg, self.feature.astype(self.dtype), weights) \
                 / float(weights.size)
         else:
-            return np.einsum(self.einsum_avg, self.feature[..., inds].astype(self.dtype), weights[inds]) \
+            return np.einsum(self.einsum_avg, self.feature[inds, ...].astype(self.dtype), weights) \
                 / float(inds.size)
 
     @property
     def shape(self):
-        return self.feature.shape[:-1]
+        return self.feature.shape[1:]
 
     def clip(self, length):
         """Clips this feature"""
         self.feature = self.feature[..., -length:]
 
     def __len__(self):
-        return self.feature.shape[-1]
+        return self.feature.shape[0]
