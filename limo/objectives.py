@@ -11,14 +11,43 @@ class Objective(object):
     Experiment agnostic
     """
 
-    def __init__(self, features, rate, dt, minibatch=None):
+    def __init__(self, features, rate, dt, minibatch=None, holdout=0.2):
+        """
+        Initialize a GLM Objective
+
+        Parameters
+        ----------
+        features : list
+            List of Feature objects
+
+        rate : array_like
+            1-D array of firing rates
+
+        dt : float
+            time step
+
+        minibatch : int, optional
+            If None, then trains on all the data. Otherwise, trains on this many
+            time indices (Default: None)
+
+        holdout : float in [0,1], optional
+            Fraction of the data to 'holdout' for testing
+
+        """
 
         assert isdistinct(f.name for f in features), \
             "All features must be unique"
 
         assert rate.ndim == 1, "Rate must be an array (1-D)"
+        assert holdout >= 0 and holdout <= 1, "Holdout fraction must be between 0 and 1"
 
         self.minibatch = minibatch
+
+        # train / test split
+        test_frac = int(np.round(holdout * rate.size))
+        inds = np.arange(rate.size)
+        self.test_indices = list(np.random.choice(inds, size=test_frac, replace=False))
+        self.train_indices = list(set(inds) - set(self.test_indices))
 
         # clip features and rates to have the same size
         self.nsamples = min(map(len, features))
@@ -35,7 +64,7 @@ class Objective(object):
     def __call__(self, theta):
 
         if self.minibatch:
-            inds = np.random.choice(np.arange(self.rate.size), self.minibatch, replace=False)
+            inds = np.random.choice(self.train_indices, self.minibatch, replace=False)
         else:
             inds = None
 
@@ -57,6 +86,21 @@ class Objective(object):
                 for f in self.features}
 
         return obj, grad
+
+    def predict(self, theta):
+        """
+        Returns
+        -------
+        rhat : array_like
+            predicted rate
+
+        robs : array_like
+            the true firing rate for the held out data
+        """
+
+        proj = reduce(np.add, (f(theta[f.name], inds=self.test_indices) for f in self.features))
+        rhat = np.exp(proj)
+        return rhat, self.rate[self.test_indices]
 
     def __len__(self):
         return self.nsamples
