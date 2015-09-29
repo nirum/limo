@@ -102,5 +102,29 @@ class Objective(object):
         rhat = np.exp(proj)
         return rhat, self.rate[self.test_indices]
 
+    def test(self, theta):
+        """
+        Compute the neg. log-likelihood objective on the test set
+        """
+
+        # compute projection
+        proj = reduce(np.add, (f(theta[f.name], inds=self.test_indices) for f in self.features))
+
+        # model rate
+        rhat = np.exp(proj)
+
+        # inner product of average features with the parameters
+        avg_innerprod = (np.dot(avg.ravel(), theta[name].ravel()) \
+                         for name, avg in self.averages.items())
+
+        # neg. log-likelihood
+        obj = self.dt * np.mean(rhat) - reduce(np.add, avg_innerprod)
+
+        # gradient
+        grad = {f.name: self.dt * f.weighted_average(rhat, inds=inds) - self.averages[f.name] \
+                for f in self.features}
+
+        return obj, grad
+
     def __len__(self):
         return self.nsamples
