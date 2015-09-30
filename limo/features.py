@@ -93,7 +93,7 @@ class Stimulus(Feature):
                 / float(weights.size)
         else:
             return np.einsum(self.einsum_avg, self.feature[inds, ...].astype(self.dtype), weights) \
-                / float(inds.size)
+                / float(len(inds))
 
     @property
     def shape(self):
