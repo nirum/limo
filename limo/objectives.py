@@ -43,16 +43,16 @@ class Objective(object):
 
         self.minibatch = minibatch
 
-        # train / test split
-        test_frac = int(np.round(holdout * rate.size))
-        inds = np.arange(rate.size)
-        self.test_indices = list(np.random.choice(inds, size=test_frac, replace=False))
-        self.train_indices = list(set(inds) - set(self.test_indices))
-
         # clip features and rates to have the same size
         self.nsamples = min(map(len, features))
         list(f.clip(self.nsamples) for f in features)
         self.rate = rate[-self.nsamples:]
+
+        # train / test split
+        test_frac = int(np.round(holdout * self.nsamples))
+        inds = np.arange(self.nsamples)
+        self.test_indices = list(np.random.choice(inds, size=test_frac, replace=False))
+        self.train_indices = list(set(inds) - set(self.test_indices))
 
         print(u'\u279B Initializing... ', end='', flush=True)
         self.features = features
