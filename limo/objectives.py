@@ -49,14 +49,16 @@ class Objective(object):
         self.rate = rate[-self.nsamples:]
 
         # train / test split
-        test_frac = int(np.round(holdout * self.nsamples))
+        test_num = int(np.round(holdout * self.nsamples))
         inds = np.arange(self.nsamples)
-        self.test_indices = list(np.random.choice(inds, size=test_frac, replace=False))
-        self.train_indices = list(set(inds) - set(self.test_indices))
+        np.random.shuffle(inds)
+        self.test_indices = inds[:test_num]
+        self.train_indices = inds[test_num:]
 
         print(u'\u279b Initializing... ', end='', flush=True)
         self.features = features
-        self.averages = {f.name: f.weighted_average(self.rate) for f in features}
+        # self.averages = {f.name: f.weighted_average(self.rate) for f in features}
+        self.averages = {f.name: np.random.randn(*f.shape) for f in features}
         self.theta_init = valmap(lambda x: x * 0.01, deepcopy(self.averages))
         self.dt = dt
         print('Done.')
@@ -72,11 +74,8 @@ class Objective(object):
 
     def _objective(self, theta, inds):
 
-        # compute projection
-        proj = reduce(np.add, (f(theta[f.name], inds=inds) for f in self.features))
-
         # model rate
-        rhat = np.exp(proj)
+        rhat = self.response(theta, inds)
 
         # inner product of average features with the parameters
         avg_innerprod = (np.dot(avg.ravel(), theta[name].ravel()) \
@@ -102,8 +101,7 @@ class Objective(object):
             the true firing rate for the held out data
         """
 
-        proj = reduce(np.add, (f(theta[f.name], inds=self.test_indices) for f in self.features))
-        rhat = np.exp(proj) * self.dt
+        rhat = self.response(theta, self.test_indices) * self.dt
         return rhat, self.rate[self.test_indices]
 
     def test(self, theta):
@@ -112,6 +110,9 @@ class Objective(object):
         """
 
         return self._objective(theta, self.test_indices)[0]
+
+    def response(self, theta, inds):
+        return np.exp(reduce(np.add, (f(theta[f.name], inds=inds) for f in self.features)))
 
     def __len__(self):
         return self.nsamples

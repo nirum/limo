@@ -21,4 +21,4 @@ __all__ = [
 from .features import *
 from .objectives import *
 
-__version__ = '0.0'
+__version__ = '0.01'

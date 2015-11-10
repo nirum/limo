@@ -1,24 +1,30 @@
 import numpy as np
-from .mixins import Feature
+from .utils import Feature
+from scipy.stats import zscore
 from pyret.filtertools import rolling_window
 
-__all__ = ['Convolutional', 'Feature']
+__all__ = ['Convolutional']
 
 
 class Convolutional(Feature):
-    def __init__(self, name, stimulus, history=1, dtype='float'):
+    def __init__(self, name, stimulus, history=1, dtype='float', zscore=(0., 1.)):
         """
         Parameters
         ----------
         feature: array_like (space, space, time)
         einsum: string
         """
-        assert stimulus.ndim <= 6, "Too many dimensions!"
+        ndim = len(stimulus.shape)
+        assert ndim <= 6, "Too many dimensions!"
 
         super().__init__(name)
-        self.stimulus = rolling_window(stimulus, history, time_axis=0)
+        self.stimulus = rolling_window(np.array(stimulus), history, time_axis=0)
         self.ndim = self.stimulus.ndim
         self.dtype = dtype
+
+        # get mean and std. dev. of the stimulus (passed in by user)
+        self.mu = zscore[0]
+        self.sigma = zscore[1]
 
         letters = 'tijklmn'
         self.einsum_proj = letters[:self.ndim] + ',' + \
@@ -27,21 +33,23 @@ class Convolutional(Feature):
         self.einsum_avg = letters[:self.ndim] + ',' + \
             letters[0] + '->' + letters[1:self.ndim]
 
-    def __call__(self, theta, inds=None):
+    def zscore(self, x):
+        return (x - self.mu) / self.sigma
 
-        if inds is None:
-            return np.einsum(self.einsum_proj, self.stimulus.astype(self.dtype), theta)
+    def __getitem__(self, inds):
+        return self.zscore(self.stimulus[inds].astype(self.dtype))
 
-        else:
-            return np.einsum(self.einsum_proj, self.stimulus[inds, ...].astype(self.dtype), theta)
+    def __call__(self, theta, inds=Ellipsis):
+        return np.einsum(self.einsum_proj, self[inds], theta.astype(self.dtype))
 
-    def weighted_average(self, weights, inds=None):
-        if inds is None:
-            return np.einsum(self.einsum_avg, self.stimulus.astype(self.dtype), weights) \
-                / float(weights.size)
-        else:
-            return np.einsum(self.einsum_avg, self.stimulus[inds, ...].astype(self.dtype), weights) \
-                / float(len(inds))
+    def weighted_average(self, weights, inds=Ellipsis):
+
+        try:
+            L = float(len(inds))
+        except TypeError:
+            L = float(self.stimulus.shape[0])
+
+        return np.einsum(self.einsum_avg, self[inds], weights.astype(self.dtype)) / L
 
     @property
     def shape(self):

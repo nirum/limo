@@ -1,3 +1,32 @@
+"""
+Shared utilities
+
+"""
+import numpy as np
+
+__all__ = ['batchify', 'Feature']
+
+
+def batchify(X, batch_size, randomize=True):
+    """
+    Returns a generator that yields batches of samples from X
+
+    """
+
+    inds = np.arange(X.shape[0])
+
+    if randomize:
+        np.random.shuffle(inds)
+
+    while len(inds) > 0:
+
+        # get a batch
+        yield X[inds[:batch_size]]
+
+        # delete indices for this batch from the pool
+        inds = np.delete(inds, slice(batch_size))
+
+
 class ComparableMixin(object):
     def _compare(self, other, method):
         try:
