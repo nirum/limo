@@ -1,6 +1,6 @@
 """
 Limo
-=e==
+====
 
 A Python package for fitting generalized LInear MOdels
 
@@ -13,12 +13,12 @@ For more information, see the accompanying README.md
 
 """
 
-__all__ = [
-    'features',
-    'objective'
-    ]
+# __all__ = [
+    # 'features',
+    # 'objective'
+    # ]
 
-from .features import *
-from .objectives import *
+# from .features import *
+# from .objectives import *
 
-__version__ = '0.01'
+__version__ = '0.02'

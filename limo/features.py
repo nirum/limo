@@ -1,23 +1,19 @@
 import numpy as np
-from .utils import Feature
+from .utils import batchify, epochify
 from scipy.stats import zscore
 from pyret.filtertools import rolling_window
+from .algorithms import adam
 
-__all__ = ['Convolutional']
+__all__ = ['Feature']
 
 
-class Convolutional(Feature):
-    def __init__(self, name, stimulus, history=1, dtype='float', zscore=(0., 1.)):
-        """
-        Parameters
-        ----------
-        feature: array_like (space, space, time)
-        einsum: string
-        """
+class Feature:
+
+    def __init__(self, stimulus, theta_init, history=1, dtype='float', zscore=(0., 1.)):
+
         ndim = len(stimulus.shape)
         assert ndim <= 6, "Too many dimensions!"
 
-        super().__init__(name)
         self.stimulus = rolling_window(np.array(stimulus), history, time_axis=0)
         self.ndim = self.stimulus.ndim
         self.dtype = dtype
@@ -25,6 +21,9 @@ class Convolutional(Feature):
         # get mean and std. dev. of the stimulus (passed in by user)
         self.mu = zscore[0]
         self.sigma = zscore[1]
+
+        self.optimizer = adam(theta_init.astype(dtype), learning_rate=1e-2)
+        self.theta = self.optimizer.send(None)
 
         letters = 'tijklmn'
         self.einsum_proj = letters[:self.ndim] + ',' + \
@@ -37,23 +36,17 @@ class Convolutional(Feature):
         return (x - self.mu) / self.sigma
 
     def __getitem__(self, inds):
-        return self.zscore(self.stimulus[inds].astype(self.dtype))
+        self.minibatch = self.zscore(self.stimulus[inds].astype(self.dtype))
+        return np.einsum(self.einsum_proj, self.minibatch, self.theta)
 
-    def __call__(self, theta, inds=Ellipsis):
-        return np.einsum(self.einsum_proj, self[inds], theta.astype(self.dtype))
-
-    def weighted_average(self, weights, inds=Ellipsis):
-
-        try:
-            L = float(len(inds))
-        except TypeError:
-            L = float(self.stimulus.shape[0])
-
-        return np.einsum(self.einsum_avg, self[inds], weights.astype(self.dtype)) / L
+    def __call__(self, err):
+        gradient = np.einsum(self.einsum_avg, self.minibatch, err) / float(err.size)
+        self.theta = self.optimizer.send(gradient)
+        return gradient
 
     @property
     def shape(self):
-        return self.stimulus.shape[1:]
+        return self.theta.shape
 
     def clip(self, length):
         """Clips this feature"""
