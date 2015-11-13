@@ -2,6 +2,9 @@ import numpy as np
 from .features import Feature
 from .utils import batchify, holdout
 from scipy.stats import pearsonr
+from os.path import expanduser, join
+
+__all__ = ['PoissonGLM']
 
 
 class PoissonGLM:
@@ -80,6 +83,12 @@ class PoissonGLM:
         self.k += 1
 
         print('[{:d}] {}'.format(self.k, fobj))
+
+    def save(self, fname, basedir='~/Dropbox/data/GLMs'):
+
+        theta = [f.theta for f in features]
+        np.savez(join(basedir, fname), test_obj=self.test_obj, test_cc=self.test_cc,
+                 obj=self.objective, params=theta)
 
     def __len__(self):
         return self.nsamples

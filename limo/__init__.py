@@ -13,12 +13,7 @@ For more information, see the accompanying README.md
 
 """
 
-# __all__ = [
-    # 'features',
-    # 'objective'
-    # ]
-
-# from .features import *
-# from .objectives import *
+from .features import *
+from .main import *
 
 __version__ = '0.02'
