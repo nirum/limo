@@ -13,7 +13,7 @@ class PoissonGLM:
 
         # clip lengths and the given rate
         self.nsamples = min(map(len, self.features))
-        list(f.clip(self.nsamples) for f in features)
+        list(f.clip(self.nsamples) for f in self.features)
         self.rate = rate[-self.nsamples:]
         self.dt = dt
 
@@ -22,7 +22,6 @@ class PoissonGLM:
 
         # keep track of stuff
         self.k = 0
-        self.epoch = 0
         self.objective = list()
         self.test_obj = list()
         self.test_cc = list()
@@ -31,38 +30,56 @@ class PoissonGLM:
 
         for epoch in range(num_epochs):
 
-            self.epoch += 1
+            print('Epoch {:01d} of {:01d}'.format(epoch+1, num_epochs))
 
             # validate on test data
-            cc = []
-            for batch in self.test:
-                utot = self.predict(batch)
-                rhat = np.exp(utot)
-                self.test_obj.append(self.dt * np.nanmean(rhat - self.rate[batch] * utot))
-                self.test_cc.append(pearsonr(rhat, self.rate[batch])[0])
+            self.score()
 
-            for batch in self.train:
-                self.train(batch)
+            # train
+            list(map(self.feed, self.train))
+
+        # score again
+        self.score()
+
+    def score(self):
+
+        obj = []
+        cc = []
+
+        for batch in self.test:
+            utot = self.predict(batch)
+            rhat = np.exp(utot)
+            obj.append(self.dt * np.nanmean(rhat - self.rate[batch] * utot))
+            cc.append(pearsonr(rhat, self.rate[batch])[0])
+
+        self.test_obj.append(np.nanmean(obj))
+        self.test_cc.append(np.nanmean(cc))
 
     def predict(self, inds):
 
         # forward pass
-        us = [f[inds] for f in features]
+        us = [f[inds] for f in self.features]
 
         # collect
-        return = np.sum(us, axis=0)
+        return np.sum(us, axis=0)
 
-    def train(self, inds):
+    def feed(self, inds):
 
         # compute the prediction
         utot = self.predict(inds)
         rhat = np.exp(utot)
 
         # backpropogate the error
-        grads = [f(self.dt * (rhat - self.rate[inds])) for f in features]
+        grads = [f(self.dt * (rhat - self.rate[inds])) for f in self.features]
 
         # save objective
-        self.objective.append(self.dt * np.nanmean(rhat - self.rate[inds] * utot))
+        fobj = self.dt * np.nanmean(rhat - self.rate[inds] * utot)
+        self.objective.append(fobj)
 
         # update iteration
         self.k += 1
+
+        print('[{:d}] {}'.format(self.k, fobj))
+
+    def __len__(self):
+        return self.nsamples

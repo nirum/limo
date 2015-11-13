@@ -6,7 +6,7 @@ __all__ = ['Feature']
 
 class Feature:
 
-    def __init__(self, stimulus, theta_init, lr, l2=1e-3):
+    def __init__(self, stimulus, lr=1e-4, l2=1e-3):
 
         ndim = len(stimulus.shape)
         assert ndim <= 6, "Too many dimensions!"
@@ -16,6 +16,7 @@ class Feature:
         self.stimulus = stimulus
         self.ndim = self.stimulus.ndim
 
+        theta_init = 1e-4 * np.random.randn(*self.stimulus.shape[1:])
         self.optimizer = adam(theta_init, learning_rate=lr)
         self.theta = self.optimizer.send(None)
 
