@@ -9,20 +9,24 @@ __all__ = ['Feature']
 
 class Feature:
 
-    def __init__(self, stimulus, theta_init, history=1, dtype='float', zscore=(0., 1.)):
+    def __init__(self, stimulus, theta_init, lr, l2=1e-3, active=True):
 
         ndim = len(stimulus.shape)
         assert ndim <= 6, "Too many dimensions!"
 
-        self.stimulus = rolling_window(np.array(stimulus), history, time_axis=0)
-        self.ndim = self.stimulus.ndim
-        self.dtype = dtype
-
         # get mean and std. dev. of the stimulus (passed in by user)
-        self.mu = zscore[0]
-        self.sigma = zscore[1]
+        # self.mu = zscore[0]
+        # self.sigma = zscore[1]
 
-        self.optimizer = adam(theta_init.astype(dtype), learning_rate=1e-2)
+        # self.stimulus = rolling_window(self.zscore(np.array(stimulus).astype(dtype)), history, time_axis=0)
+        self.stimulus = stimulus
+        self.ndim = self.stimulus.ndim
+        # self.dtype = dtype
+        self.l2 = l2
+
+        self.active = active
+
+        self.optimizer = adam(theta_init, learning_rate=lr)
         self.theta = self.optimizer.send(None)
 
         letters = 'tijklmn'
@@ -32,16 +36,18 @@ class Feature:
         self.einsum_avg = letters[:self.ndim] + ',' + \
             letters[0] + '->' + letters[1:self.ndim]
 
-    def zscore(self, x):
-        return (x - self.mu) / self.sigma
-
     def __getitem__(self, inds):
-        self.minibatch = self.zscore(self.stimulus[inds].astype(self.dtype))
+        self.minibatch = self.stimulus[inds]
         return np.einsum(self.einsum_proj, self.minibatch, self.theta)
 
     def __call__(self, err):
         gradient = np.einsum(self.einsum_avg, self.minibatch, err) / float(err.size)
-        self.theta = self.optimizer.send(gradient)
+        gradient += self.l2 * self.theta
+        self.minibatch = None
+
+        if self.active:
+            self.theta = self.optimizer.send(gradient)
+
         return gradient
 
     @property
