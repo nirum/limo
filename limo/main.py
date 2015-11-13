@@ -52,8 +52,8 @@ class PoissonGLM:
             obj.append(self.dt * np.nanmean(rhat - self.rate[batch] * utot))
             cc.append(pearsonr(rhat, self.rate[batch])[0])
 
-        self.test_obj.append(np.nanmean(obj))
-        self.test_cc.append(np.nanmean(cc))
+        self.test_obj.append(obj)
+        self.test_cc.append(cc)
 
     def predict(self, inds):
 
