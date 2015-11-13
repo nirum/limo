@@ -1,71 +1,68 @@
 import numpy as np
 from .features import Feature
-from .utils import epochify, batchify
-
-# f = Feature(...)
-
-# u = f[inds]
-# rhat = np.exp(u)
-# obj = np.mean(dt * rhat - robs[inds] * u)
-# grad = f.update(dt * rhat - robs[inds])
-
-for k, batch in enumerate(epochify(num_epochs, len(f), batch_size, randomize)):
-
-    u = f[batch]
-    rhat = np.exp(u)
-    grad = f(rhat * 1e-2 - robs[batch])
-
-# class PoissonGLM:
-
-    # def __init__(self, features):
-
-            # for f in features:
+from .utils import batchify, holdout
+from scipy.stats import pearsonr
 
 
-# class Foo:
+class PoissonGLM:
 
-    # def __init__(self, X, theta_init):
+    def __init__(self, features, rate, dt, batch_size=1000, frac_holdout=0.1):
 
-        # self.X = X
-        # self.optimizer = adam(theta, learning_rate=1e-2)
-        # self.theta = self.optimizer.send(None)
-        # self.ndim = self.theta.ndim
+        # list of features
+        self.features = features
 
-    # def __getitem__(self, inds):
+        # clip lengths and the given rate
+        self.nsamples = min(map(len, self.features))
+        list(f.clip(self.nsamples) for f in features)
+        self.rate = rate[-self.nsamples:]
+        self.dt = dt
 
-        # # load and save this minibatch for later
-        # self.minibatch = self.X[inds]
+        # generate train/test indices
+        self.train, self.test = holdout(batchify(self.nsamples, batch_size, True), frac_holdout)
 
-        # # return projection (u)
-        # return np.tensordot(self.minibatch, self.theta, self.ndim)
+        # keep track of stuff
+        self.k = 0
+        self.epoch = 0
+        self.objective = list()
+        self.test_obj = list()
+        self.test_cc = list()
 
-    # def update(self, err):
+    def fit(self, num_epochs=5):
 
-        # # compute the gradient
-        # gradient = np.tensordot(err, self.minibatch, 1) / float(err.size)
+        for epoch in range(num_epochs):
 
-        # # update weights
-        # self.theta = self.optimizer.send(gradient)
+            self.epoch += 1
 
-        # # gradient
-        # return gradient
+            # validate on test data
+            cc = []
+            for batch in self.test:
+                utot = self.predict(batch)
+                rhat = np.exp(utot)
+                self.test_obj.append(self.dt * np.nanmean(rhat - self.rate[batch] * utot))
+                self.test_cc.append(pearsonr(rhat, self.rate[batch])[0])
 
-    # def __len__(self):
-        # return self.X.shape[0]
+            for batch in self.train:
+                self.train(batch)
 
+    def predict(self, inds):
 
-# def feature():
+        # forward pass
+        us = [f[inds] for f in features]
 
-    # def __iter__(self):
-        # while True:
-            # print('>> Waiting for indices')
-            # inds = yield
-            # print('>> Got indices: ', inds)
-            # print('>> Loading data')
-            # x = self.data[inds]
-            # u = np.tensordot(x, self.theta, self.theta.ndim)
-            # err = yield u
-            # print('>> Got error: ', err)
-            # self.theta = self.optimizer.send(np.tensordot(err, x, 1))
-            # print('>> Updated theta')
+        # collect
+        return = np.sum(us, axis=0)
 
+    def train(self, inds):
+
+        # compute the prediction
+        utot = self.predict(inds)
+        rhat = np.exp(utot)
+
+        # backpropogate the error
+        grads = [f(self.dt * (rhat - self.rate[inds])) for f in features]
+
+        # save objective
+        self.objective.append(self.dt * np.nanmean(rhat - self.rate[inds] * utot))
+
+        # update iteration
+        self.k += 1

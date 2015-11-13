@@ -6,6 +6,7 @@ import numpy as np
 
 __all__ = ['adam']
 
+
 def adam(x0, learning_rate=1e-3, beta=(0.9, 0.999), epsilon=1e-8):
 
     xk = x0.copy()
