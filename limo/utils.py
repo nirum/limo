@@ -5,7 +5,7 @@ Shared utilities
 import numpy as np
 from pyret.filtertools import rolling_window
 
-__all__ = ['batchify', 'epochify', 'holdout']
+__all__ = ['batchify', 'epochify', 'holdout', 'preprocess']
 
 
 def epochify(num_epochs, t, n, randomize, holdout=0.2):
