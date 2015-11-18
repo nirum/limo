@@ -1,5 +1,5 @@
 import numpy as np
-from .algorithms import adam
+from descent.algorithms import adam
 
 __all__ = ['Feature']
 
