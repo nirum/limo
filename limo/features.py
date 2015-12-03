@@ -1,7 +1,11 @@
 import numpy as np
-from descent.algorithms import adam
+from descent.algorithms import adam, sgd
 
 __all__ = ['Feature']
+
+
+def inner(x,y):
+    return np.inner(x.ravel(), y.ravel())
 
 
 class Feature:
@@ -12,13 +16,14 @@ class Feature:
         assert ndim <= 6, "Too many dimensions!"
 
         self.l2 = l2
+        self.hessian = False
 
         self.stimulus = stimulus
         self.ndim = self.stimulus.ndim
 
         theta_init = 1e-4 * np.random.randn(*self.stimulus.shape[1:])
-        self.optimizer = adam(theta_init, learning_rate=lr)
-        self.theta = self.optimizer.send(None)
+        self.optimizer = sgd(lr=lr)
+        self.theta = self.optimizer.send(theta_init)
 
         letters = 'tijklmn'
         self.einsum_proj = letters[:self.ndim] + ',' + \
@@ -36,9 +41,16 @@ class Feature:
         self.minibatch = self.stimulus[inds]
         return np.einsum(self.einsum_proj, self.minibatch, self.theta)
 
-    def __call__(self, err, active=True):
+    def __call__(self, err, mu, active=True):
         """
         Backpropogate an error signal
+
+        Parameters
+        ----------
+        err : array_like
+
+        mu : float
+            Mean firing rate
 
         """
 
@@ -47,6 +59,14 @@ class Feature:
 
         # add l2 regularization
         gradient += self.l2 * self.theta
+
+        if self.hessian:
+            wtw = inner(self.theta, self.theta)
+            wtg = inner(self.theta, gradient)
+            alpha = 1. / mu #(1./self.l2 + 1./mu)
+            beta = wtg / ((1. + wtw) * mu)
+            print('a={}, b={}'.format(alpha, beta))
+            gradient = alpha * gradient - self.theta * beta
 
         # clear memory
         self.minibatch = None
