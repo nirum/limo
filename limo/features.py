@@ -1,5 +1,5 @@
 import numpy as np
-from descent.algorithms import adam, sgd
+from descent.algorithms import adam
 
 __all__ = ['Feature']
 
@@ -22,8 +22,8 @@ class Feature:
         self.ndim = self.stimulus.ndim
 
         theta_init = 1e-4 * np.random.randn(*self.stimulus.shape[1:])
-        self.optimizer = sgd(lr=lr)
-        self.theta = self.optimizer.send(theta_init)
+        self.optimizer = adam(theta_init, lr=lr)
+        self.theta = theta_init.copy()
 
         letters = 'tijklmn'
         self.einsum_proj = letters[:self.ndim] + ',' + \
@@ -61,6 +61,7 @@ class Feature:
         gradient += self.l2 * self.theta
 
         if self.hessian:
+            # works for white noise stimuli
             wtw = inner(self.theta, self.theta)
             wtg = inner(self.theta, gradient)
             alpha = 1. / mu #(1./self.l2 + 1./mu)
@@ -73,7 +74,7 @@ class Feature:
 
         # gradient update
         if active:
-            self.theta = self.optimizer.send(gradient)
+            self.theta = self.optimizer(gradient)
 
         return gradient
 
