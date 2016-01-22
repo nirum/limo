@@ -1,33 +1,55 @@
 import numpy as np
 from descent import algorithms
+from .utils import inner
 
 __all__ = ['Feature']
 
 
-def inner(x, y):
-    return np.inner(x.ravel(), y.ravel())
-
-
 class Feature:
 
-    def __init__(self, stimulus, lr=1e-4, l2=1e-3, algorithm='adam'):
+    def __init__(self, stimulus, learning_rate=1e-4, l2=1e-3, algorithm='adam'):
+        """
+        Initializes a 'feature'
+
+        Parameters
+        ----------
+        stimulus : array_like
+            The first dimension indexes the sample, while the rest indicate
+            the feature space of the stimulus
+
+        learning_rate : float, optional
+            The learning rate of the optimizer (Default: 1e-4)
+
+        l2 : float, optional
+            Strength of the l2 regularization (Default: 1e-3)
+
+        algorithm : string, optional
+            Which algorithm to use, taken from descent.algorithms (Default: 'adam')
+
+        """
 
         ndim = len(stimulus.shape)
-        assert ndim <= 6, "Too many dimensions!"
+        assert ndim <= 18, "Too many dimensions!"
 
+        # l2 regularization
         self.l2 = l2
+
+        # use the Hessian trick
         self.hessian = False
 
+        # store the stimulus
         self.stimulus = stimulus
-        self.ndim = self.stimulus.ndim
 
         # initial parameters
         theta_init = 1e-4 * np.random.randn(*self.stimulus.shape[1:])
+        self.theta = theta_init.copy()
 
         # pick out the algorithm to use
-        self.optimizer = getattr(algorithms, algorithm)(theta_init, lr=lr)
+        self.optimizer = getattr(algorithms, algorithm)(theta_init, lr=learning_rate)
 
-        letters = 'tijklmn'
+        # create the einsum notation strings for projecting stimuli onto the
+        # feature and for averaging a rate over the stimuli
+        letters = 'tijklmnopqrstuvwxyz'
         self.einsum_proj = letters[:self.ndim] + ',' + \
             letters[1:self.ndim] + '->' + letters[0]
 
@@ -79,6 +101,10 @@ class Feature:
             self.theta = self.optimizer(gradient)
 
         return gradient
+
+    @property
+    def ndim(self):
+        return self.stimulus.ndim
 
     @property
     def shape(self):

@@ -1,5 +1,4 @@
 import numpy as np
-from .features import Feature
 from .utils import batchify, holdout
 from scipy.stats import pearsonr
 from os.path import expanduser, join
@@ -9,22 +8,44 @@ __all__ = ['PoissonGLM']
 
 class PoissonGLM:
 
-    def __init__(self, features, rate, dt, batch_size=1000, frac_holdout=0.1):
+    def __init__(self, features, rate, dt, batch_size=1000, frac_holdout=0.0):
+        """
+        Initialize a Poisson GLM
 
-        # list of features
+        Parameters
+        ----------
+        features : list
+            list of `Feature` objects (see features.py)
+
+        rate : array_like
+            An array of responses / firing rate
+
+        dt : float
+            The time step (in seconds)
+
+        batch_size : int
+            The batch size to use when loading stimuli. Only this many samples
+            of the stimulus are loaded at a time.
+
+        frac_holdout : float
+            Fraction of the stimuli to hold out as a test set.
+
+        """
+
+        # keep track of the features and the time step
         self.features = features
-
-        # clip lengths and the given rate
-        self.nsamples = min(map(len, self.features))
-        list(f.clip(self.nsamples) for f in self.features)
-        self.rate = rate[-self.nsamples:]
         self.dt = dt
 
-        # generate train/test indices
-        self.train, self.test = holdout(batchify(self.nsamples,
-                                        int(batch_size), True), frac_holdout)
+        # we need to clip all of the features and the rate to be the same length
+        self.nsamples = min(map(len, self.features))
+        [f.clip(self.nsamples) for f in self.features]
+        self.rate = rate[-self.nsamples:]
 
-        # keep track of stuff
+        # generate train/test indices
+        batches = batchify(self.nsamples, int(batch_size), True)
+        self.train, self.test = holdout(batches, frac_holdout)
+
+        # keep track of the current iteration and other metrics
         self.k = 0
         self.objective = list()
         self.test_obj = list()
@@ -72,9 +93,10 @@ class PoissonGLM:
         # compute the prediction
         utot = self.predict(inds)
         rhat = np.exp(utot)
+        mu = rhat.mean()
 
         # backpropogate the error
-        grads = [f(self.dt * (rhat - self.rate[inds]), rhat.mean()) for f in self.features]
+        [f(self.dt * (rhat - self.rate[inds]), mu) for f in self.features]
 
         # save objective
         fobj = self.dt * np.nanmean(rhat - self.rate[inds] * utot)

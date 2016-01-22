@@ -5,19 +5,14 @@ Shared utilities
 import numpy as np
 from pyret.filtertools import rolling_window
 
-__all__ = ['batchify', 'epochify', 'holdout', 'preprocess']
-
-
-def epochify(num_epochs, t, n, randomize, holdout=0.2):
-
-    for rep in range(num_epochs):
-
-        print('Epoch {:01d} of {:01d}'.format(rep+1, num_epochs))
-
-        yield from batchify(t, n, randomize)
+__all__ = ['batchify', 'holdout', 'preprocess', 'inner']
 
 
 def holdout(batches, frac=0.1):
+    """
+    Take a list and split it into train and test sets
+
+    """
 
     batches = list(batches)
     num_holdout = int(np.round(len(batches) * frac))
@@ -29,6 +24,10 @@ def holdout(batches, frac=0.1):
 
 
 def batchify(t, n, randomize=True):
+    """
+    Take a length and break it up into batches
+
+    """
 
     inds = np.arange(t)
     if randomize:
@@ -40,7 +39,7 @@ def batchify(t, n, randomize=True):
         inds = np.delete(inds, slice(n))
 
 
-def preprocess(stimulus, history, zscore=(0.,1.)):
+def preprocess(stimulus, history, zscore=(0., 1.)):
     """
     Preprocess stimulus array
 
@@ -50,3 +49,12 @@ def preprocess(stimulus, history, zscore=(0.,1.)):
     stim -= zscore[0]
     stim /= zscore[1]
     return rolling_window(stim, history, time_axis=0)
+
+
+def inner(x, y):
+    """
+    Inner product between arrays
+
+    """
+
+    return np.inner(x.ravel(), y.ravel())
