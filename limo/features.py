@@ -1,16 +1,16 @@
 import numpy as np
-from descent.algorithms import adam
+from descent import algorithms
 
 __all__ = ['Feature']
 
 
-def inner(x,y):
+def inner(x, y):
     return np.inner(x.ravel(), y.ravel())
 
 
 class Feature:
 
-    def __init__(self, stimulus, lr=1e-4, l2=1e-3):
+    def __init__(self, stimulus, lr=1e-4, l2=1e-3, algorithm='adam'):
 
         ndim = len(stimulus.shape)
         assert ndim <= 6, "Too many dimensions!"
@@ -21,9 +21,11 @@ class Feature:
         self.stimulus = stimulus
         self.ndim = self.stimulus.ndim
 
+        # initial parameters
         theta_init = 1e-4 * np.random.randn(*self.stimulus.shape[1:])
-        self.optimizer = adam(theta_init, lr=lr)
-        self.theta = theta_init.copy()
+
+        # pick out the algorithm to use
+        self.optimizer = getattr(algorithms, algorithm)(theta_init, lr=lr)
 
         letters = 'tijklmn'
         self.einsum_proj = letters[:self.ndim] + ',' + \
@@ -64,7 +66,7 @@ class Feature:
             # works for white noise stimuli
             wtw = inner(self.theta, self.theta)
             wtg = inner(self.theta, gradient)
-            alpha = 1. / mu #(1./self.l2 + 1./mu)
+            alpha = 1. / mu  # (1./self.l2 + 1./mu)
             beta = wtg / ((1. + wtw) * mu)
             print('a={}, b={}'.format(alpha, beta))
             gradient = alpha * gradient - self.theta * beta

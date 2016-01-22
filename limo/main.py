@@ -21,7 +21,8 @@ class PoissonGLM:
         self.dt = dt
 
         # generate train/test indices
-        self.train, self.test = holdout(batchify(self.nsamples, int(batch_size), True), frac_holdout)
+        self.train, self.test = holdout(batchify(self.nsamples,
+                                        int(batch_size), True), frac_holdout)
 
         # keep track of stuff
         self.k = 0
@@ -33,7 +34,7 @@ class PoissonGLM:
 
         for epoch in range(num_epochs):
 
-            print('Epoch {:01d} of {:01d}'.format(epoch+1, num_epochs))
+            print('Epoch {:01d} of {:01d}'.format(epoch + 1, num_epochs))
 
             # validate on test data
             self.score()
@@ -73,8 +74,7 @@ class PoissonGLM:
         rhat = np.exp(utot)
 
         # backpropogate the error
-        grads = [f(self.dt * (rhat - self.rate[inds]), rhat.mean())
-                 for f in self.features]
+        grads = [f(self.dt * (rhat - self.rate[inds]), rhat.mean()) for f in self.features]
 
         # save objective
         fobj = self.dt * np.nanmean(rhat - self.rate[inds] * utot)
