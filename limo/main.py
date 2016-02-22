@@ -71,7 +71,9 @@ class PoissonGLM:
                     # test
                     rhat_test = self.predict(*monitor.testdata)
                     monitor.save(epoch, iteration, r_train, rhat_train, rhat_test)
-                    # TODO: save parameters
+
+                    # save parameters
+                    self.save('epoch{}_iteration{}.npz', basedir=monitor.datadir)
 
                 # update
                 print('{}\tLoss: {}'.format(iteration, fobj))
