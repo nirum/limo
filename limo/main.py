@@ -51,20 +51,27 @@ class PoissonGLM:
         self.test_obj = list()
         self.test_cc = list()
 
-    def fit(self, num_epochs=5):
+    def fit(self, num_epochs, monitor=None):
+        """Fits the parameters of the GLM"""
+
+        iteration = 0
 
         for epoch in range(num_epochs):
 
             print('Epoch {:01d} of {:01d}'.format(epoch + 1, num_epochs))
 
-            # validate on test data
-            self.score()
+            for inds in self.train:
 
-            # train
-            list(map(self.feed, self.train))
+                # train on batch
+                fobj, robs, rhat = self.feed[inds]
 
-        # score again
-        self.score()
+                # performs validation, updates performance plots, saves to dropbox
+                if (monitor is not None) and (iteration % monitor.save_every == 0):
+                    monitor.save(epoch, iteration, robs, rhat)
+
+                # update
+                print('{}\tLoss: {}'.format(iteration, fobj))
+                iteration += 1
 
     def score(self):
 
@@ -72,7 +79,7 @@ class PoissonGLM:
         cc = []
 
         for batch in self.test:
-            utot = self.predict(batch)
+            utot = self._project(batch)
             rhat = np.exp(utot)
             obj.append(self.dt * np.nanmean(rhat - self.rate[batch] * utot))
             cc.append(pearsonr(rhat, self.rate[batch])[0])
@@ -80,7 +87,13 @@ class PoissonGLM:
         self.test_obj.append(obj)
         self.test_cc.append(cc)
 
-    def predict(self, inds):
+    def predict(self, *Xs):
+        """rate prediction given the stimulus and rates"""
+        utot = np.sum([f._project(x) for x, f in zip(Xs, self.features)], axis=0)
+        rhat = np.exp(utot)
+        return rhat
+
+    def _project(self, inds):
 
         # forward pass
         us = [f[inds] for f in self.features]
@@ -91,7 +104,7 @@ class PoissonGLM:
     def feed(self, inds):
 
         # compute the prediction
-        utot = self.predict(inds)
+        utot = self._project(inds)
         rhat = np.exp(utot)
         mu = rhat.mean()
 
@@ -105,10 +118,9 @@ class PoissonGLM:
         # update iteration
         self.k += 1
 
-        print('[{:d}] {}'.format(self.k, fobj))
+        return fobj, self.rate[inds], rhat
 
     def save(self, fname, basedir='~/Dropbox/data/GLMs'):
-
         theta = [f.theta for f in self.features]
         np.savez(expanduser(join(basedir, fname)), test_obj=self.test_obj, test_cc=self.test_cc,
                  obj=self.objective, params=theta)

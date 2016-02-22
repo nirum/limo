@@ -56,6 +56,10 @@ class Feature:
         self.einsum_avg = letters[:self.ndim] + ',' + \
             letters[0] + '->' + letters[1:self.ndim]
 
+    def _project(self, X):
+        """Returns the projection onto the given stimulus"""
+        return np.einsum(self.einsum_proj, X, self.theta)
+
     def __getitem__(self, inds):
         """
         Forward projection using the given indices
