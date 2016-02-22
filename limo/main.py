@@ -73,7 +73,7 @@ class PoissonGLM:
                     monitor.save(epoch, iteration, r_train, rhat_train, rhat_test)
 
                     # save parameters
-                    self.save('epoch{}_iteration{}.npz', basedir=monitor.datadir)
+                    self.save('epoch{}_iteration{}.npz'.format(epoch, iteration), basedir=monitor.datadir)
 
                 # update
                 print('{}\tLoss: {}'.format(iteration, fobj))
