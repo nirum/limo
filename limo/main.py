@@ -63,11 +63,14 @@ class PoissonGLM:
             for inds in self.train:
 
                 # train on batch
-                fobj, robs, rhat = self.feed[inds]
+                fobj, r_train, rhat_train = self.feed[inds]
 
                 # performs validation, updates performance plots, saves to dropbox
                 if (monitor is not None) and (iteration % monitor.save_every == 0):
-                    monitor.save(epoch, iteration, robs, rhat)
+
+                    # test
+                    rhat_test = self.predict(*monitor.testdata)
+                    monitor.save(epoch, iteration, r_train, rhat_train, rhat_test)
 
                 # update
                 print('{}\tLoss: {}'.format(iteration, fobj))
