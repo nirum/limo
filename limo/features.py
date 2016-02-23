@@ -82,11 +82,16 @@ class Feature:
 
         """
 
-        # compute the gradient
-        gradient = np.einsum(self.einsum_avg, self.minibatch, err) / float(err.size)
+        # compute the gradients
+        loglik_gradient = np.einsum(self.einsum_avg, self.minibatch, err) / float(err.size)
+        logprior_gradient = self.l2 * self.theta
 
-        # add l2 regularization
-        gradient += self.l2 * self.theta
+        # add
+        gradient = loglik_gradient + logprior_gradient
+
+        # update on each norm
+        norms = list(map(np.linalg.norm, [loglik_gradient, logprior_gradient, gradient]))
+        # print('||likelihood|| = {:8.4f}\t||prior|| = {:8.4f}\t||sum|| = {:8.4f}'.format(*norms))
 
         if self.hessian:
             # works for white noise stimuli

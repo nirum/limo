@@ -56,6 +56,9 @@ class PoissonGLM:
 
         iteration = 0
 
+        # save parameters
+        self.save('initial_weights.npz', basedir=monitor.datadir)
+
         for epoch in range(num_epochs):
 
             print('Epoch {:01d} of {:01d}'.format(epoch + 1, num_epochs))
@@ -64,6 +67,10 @@ class PoissonGLM:
 
                 # train on batch
                 fobj, r_train, rhat_train = self.feed(inds)
+
+                # update
+                print('{:03}: {:10.6f}'.format(iteration, fobj))
+                iteration += 1
 
                 # performs validation, updates performance plots, saves to dropbox
                 if (monitor is not None) and (iteration % monitor.save_every == 0):
@@ -74,10 +81,6 @@ class PoissonGLM:
 
                     # save parameters
                     self.save('epoch{}_iteration{}.npz'.format(epoch, iteration), basedir=monitor.datadir)
-
-                # update
-                print('{}\tLoss: {}'.format(iteration, fobj))
-                iteration += 1
 
     def score(self):
 
