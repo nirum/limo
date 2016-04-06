@@ -36,7 +36,7 @@ class PoissonGLM:
         self.features = features
         self.dt = dt
 
-        # we need to clip all of the features and the rate to be the same length
+        # clip all of the features and the rate to be the same length
         self.nsamples = min(map(len, self.features))
         [f.clip(self.nsamples) for f in self.features]
         self.rate = rate[-self.nsamples:]
@@ -52,6 +52,7 @@ class PoissonGLM:
         self.test_cc = list()
 
     def fit(self, num_epochs=5):
+        """Learn the optimal GLM parameters"""
 
         for epoch in range(num_epochs):
 
@@ -67,6 +68,7 @@ class PoissonGLM:
         self.score()
 
     def score(self):
+        """Tests the model using log-likelihood and correlation coefficient"""
 
         obj = []
         cc = []
@@ -81,6 +83,7 @@ class PoissonGLM:
         self.test_cc.append(cc)
 
     def predict(self, inds):
+        """Predicted firing rate"""
 
         # forward pass
         us = [f[inds] for f in self.features]
@@ -89,6 +92,7 @@ class PoissonGLM:
         return np.sum(us, axis=0)
 
     def feed(self, inds):
+        """Forward pass"""
 
         # compute the prediction
         utot = self.predict(inds)
@@ -108,9 +112,11 @@ class PoissonGLM:
         print('[{:d}] {}'.format(self.k, fobj))
 
     def save(self, fname, basedir='~/Dropbox/data/GLMs'):
-
+        """Save parameters to a .npz file"""
         theta = [f.theta for f in self.features]
-        np.savez(expanduser(join(basedir, fname)), test_obj=self.test_obj, test_cc=self.test_cc,
+        np.savez(expanduser(join(basedir, fname)),
+                 test_obj=self.test_obj,
+                 test_cc=self.test_cc,
                  obj=self.objective, params=theta)
 
     def __len__(self):
